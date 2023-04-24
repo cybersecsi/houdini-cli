@@ -20,17 +20,27 @@ func LoadTools() {
 		log.Fatal(err)
 	}
 	houdiniDir := filepath.Join(homeDir, ".houdini")
-	toolsFilePath := filepath.Join(houdiniDir, "tools.json")
-	// Read the contents of the JSON file
-	jsonFile, err := ioutil.ReadFile(toolsFilePath)
+	libraryDirPath := filepath.Join(houdiniDir, "library")
+
+	tools, err := ioutil.ReadDir(libraryDirPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Parse the JSON data into an array of Tool objects
-	err = json.Unmarshal(jsonFile, &utils.Tools)
-	if err != nil {
-		log.Fatal(err)
+	for _, toolFolder := range tools {
+		toolJsonConfig := filepath.Join(houdiniDir, "library", toolFolder.Name(), "config.json")
+		// Read the contents of the JSON file
+		jsonFile, err := ioutil.ReadFile(toolJsonConfig)
+		if err != nil {
+			log.Fatal(err)
+		}
+		var tool types.Tool
+		// Parse the JSON data and push into the array of Tool objects
+		err = json.Unmarshal(jsonFile, &tool)
+		if err != nil {
+			log.Fatal(err)
+		}
+		utils.Tools = append(utils.Tools, tool)
 	}
 }
 

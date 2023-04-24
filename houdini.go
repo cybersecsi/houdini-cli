@@ -9,7 +9,7 @@ import (
 func main() {
 	utils.Banner()
 	houdini.CheckAndCreateHoudiniDir()
-	houdini.DownloadToolsFile()
+	houdini.DownloadLibrary()
 	houdini.LoadTools()
 	cmd.Execute()
 }

@@ -1,8 +1,12 @@
 package utils
 
 import (
+	"archive/tar"
 	"bufio"
+	"compress/gzip"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -52,4 +56,83 @@ func ConfirmAction(actionTxt string) bool {
 		return false
 	}
 	return actionConfirmed
+}
+
+func DownloadFile(url string, filepath string) error {
+	// Create the file
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Download the file
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UnpackTarGz(tarGzFile string, destDir string) error {
+	// Open the tar.gz file
+	f, err := os.Open(tarGzFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	// Create a gzip reader for the file
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		return err
+	}
+	defer gz.Close()
+
+	// Create a tar reader for the gzip reader
+	tr := tar.NewReader(gz)
+
+	// Iterate over the files in the tar archive
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			// End of archive
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		// Create the destination file
+		destFile := destDir + "/" + hdr.Name
+		fi := hdr.FileInfo()
+		if fi.IsDir() {
+			err = os.MkdirAll(destFile, fi.Mode())
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		f, err := os.OpenFile(destFile, os.O_CREATE|os.O_RDWR, fi.Mode())
+		if err != nil {
+			return err
+		}
+
+		// Copy the contents of the file from the tar archive to the destination file
+		_, err = io.Copy(f, tr)
+		if err != nil {
+			return err
+		}
+		f.Close()
+	}
+
+	return nil
 }

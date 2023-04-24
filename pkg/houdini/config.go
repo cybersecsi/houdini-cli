@@ -1,8 +1,8 @@
 package houdini
 
 import (
+	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -10,8 +10,6 @@ import (
 
 	"github.com/cybersecsi/houdini-cli/pkg/utils"
 )
-
-const houdiniToolsURL = "https://raw.githubusercontent.com/cybersecsi/HOUDINI/main/webapp/src/config/tools.json"
 
 func CheckAndCreateHoudiniDir() {
 	homeDir, err := os.UserHomeDir()
@@ -29,38 +27,47 @@ func CheckAndCreateHoudiniDir() {
 	}
 }
 
-func DownloadToolsFile() {
+func DownloadLibrary() {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
 	}
 	houdiniDir := filepath.Join(homeDir, ".houdini")
-	toolsFilePath := filepath.Join(houdiniDir, "tools.json")
+	libraryFilePath := filepath.Join(houdiniDir, "houdini-library.tar.gz")
+	repoURL := "https://api.github.com/repos/cybersecsi/houdini/releases/latest"
 
-	// Check if the tools file already exists
-	if _, err := os.Stat(toolsFilePath); os.IsNotExist(err) {
-		utils.Info("Downloading tools.json...")
-		resp, err := http.Get(houdiniToolsURL)
-		if err != nil {
-			utils.Error("Failed to download tools.json")
-			os.Exit(1)
-		}
-		defer resp.Body.Close()
+	// Make a GET request to the release endpoint
+	resp, err := http.Get(repoURL)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer resp.Body.Close()
 
-		// Create the tools file
-		toolsFile, err := os.Create(toolsFilePath)
-		if err != nil {
-			utils.Error("Failed to create tools.json file")
-			os.Exit(1)
-		}
-		defer toolsFile.Close()
+	// Parse the JSON response to get the download URL for the latest release asset
+	// Replace "asset_name" with the name of the asset you want to download
+	// Alternatively, you can loop through the assets and download all of them
+	var result map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	downloadURL := result["assets"].([]interface{})[0].(map[string]interface{})["browser_download_url"].(string)
 
-		// Save the contents of the response body to the tools file
-		if _, err := io.Copy(toolsFile, resp.Body); err != nil {
-			utils.Error("Failed to write tools.json file")
-			os.Exit(1)
-		}
-		utils.Success("File tools.json correctly downloaded")
+	// Download the asset
+	err = utils.DownloadFile(downloadURL, libraryFilePath)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	utils.UnpackTarGz(libraryFilePath, houdiniDir)
+
+	err = os.Remove(libraryFilePath)
+	if err != nil {
+		fmt.Println("Error deleting folder:", err)
+		return
 	}
 }
 
@@ -70,14 +77,14 @@ func UpdateToolsFile() {
 		log.Fatal(err)
 	}
 	houdiniDir := filepath.Join(homeDir, ".houdini")
-	toolsFilePath := filepath.Join(houdiniDir, "tools.json")
+	libraryFolderPath := filepath.Join(houdiniDir, "library")
 
-	if _, err := os.Stat(toolsFilePath); err == nil {
-		err := os.Remove(toolsFilePath)
+	if _, err := os.Stat(libraryFolderPath); err == nil {
+		err := os.RemoveAll(libraryFolderPath)
 		if err != nil {
-			fmt.Println("Error deleting file:", err)
+			fmt.Println("Error deleting folder:", err)
 			return
 		}
 	}
-	DownloadToolsFile()
+	DownloadLibrary()
 }
