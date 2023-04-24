@@ -6,8 +6,10 @@ import (
 	"github.com/cybersecsi/houdini-cli/pkg/utils"
 )
 
+var version = "0.0.2"
+
 func main() {
-	utils.Banner()
+	utils.Banner(version)
 	houdini.CheckAndCreateHoudiniDir()
 	houdini.DownloadLibrary()
 	houdini.LoadTools()
