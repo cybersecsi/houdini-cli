@@ -5,12 +5,12 @@ HOUDINI CLI is the command-line interface tool for HOUDINI. It provides easy and
 
 ## Installation
 ```
-go install github.com/cybersecsi/HOUDINI/houdini
+go install github.com/cybersecsi/houdini-cli@latest
 ```
 
 ## Usage
 
-Run ``houdini`` to get inside the console:
+Run ``houdini-cli`` to get inside the console:
 
 ```
   ███████╗███████╗ ██████╗███████╗██╗
@@ -24,6 +24,7 @@ Run ``houdini`` to get inside the console:
 Interactive mode
 Available commands:
 - run: runs a HOUDINI tool
+- quick: runs the quick command of a HOUDINI tool
 - update: updates the list of tools from HOUDINI repository
 - list: displays the list of all available HOUDINI tools
 - clear: cleanup the output

@@ -9,10 +9,33 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/cybersecsi/houdini-cli/pkg/types"
 	"github.com/cybersecsi/houdini-cli/pkg/utils"
 )
+
+func loadTool(wg *sync.WaitGroup, toolName string) {
+	defer wg.Done()
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	houdiniDir := filepath.Join(homeDir, ".houdini")
+	toolJsonConfig := filepath.Join(houdiniDir, "library", toolName, "config.json")
+	// Read the contents of the JSON file
+	jsonFile, err := ioutil.ReadFile(toolJsonConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var tool types.Tool
+	// Parse the JSON data and push into the array of Tool objects
+	err = json.Unmarshal(jsonFile, &tool)
+	if err != nil {
+		log.Fatal(err)
+	}
+	utils.Tools = append(utils.Tools, tool)
+}
 
 func LoadTools() {
 	homeDir, err := os.UserHomeDir()
@@ -27,21 +50,28 @@ func LoadTools() {
 		log.Fatal(err)
 	}
 
-	for _, toolFolder := range tools {
-		toolJsonConfig := filepath.Join(houdiniDir, "library", toolFolder.Name(), "config.json")
-		// Read the contents of the JSON file
-		jsonFile, err := ioutil.ReadFile(toolJsonConfig)
-		if err != nil {
-			log.Fatal(err)
-		}
-		var tool types.Tool
-		// Parse the JSON data and push into the array of Tool objects
-		err = json.Unmarshal(jsonFile, &tool)
-		if err != nil {
-			log.Fatal(err)
-		}
-		utils.Tools = append(utils.Tools, tool)
+	concurrency := 10
+	var wg sync.WaitGroup
+	wg.Add(len(tools))
+
+	jobs := make(chan string)
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			for element := range jobs {
+				loadTool(&wg, element)
+			}
+		}()
 	}
+
+	// Add jobs to the channel
+	for _, toolFolder := range tools {
+		jobs <- toolFolder.Name()
+	}
+	close(jobs)
+
+	// Wait for all workers to finish
+	wg.Wait()
+
 }
 
 func GetToolNames() []string {
