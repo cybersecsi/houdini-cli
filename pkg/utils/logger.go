@@ -15,16 +15,16 @@ const colorPurple = "\033[35m"
 const colorCyan = "\033[36m"
 const colorWhite = "\033[37m"
 
-func Banner() {
-	banner := `
+func Banner(version string) {
+	banner := fmt.Sprintf(`
   ███████╗███████╗ ██████╗███████╗██╗
   ██╔════╝██╔════╝██╔════╝██╔════╝██║
   ███████╗█████╗  ██║     ███████╗██║
   ╚════██║██╔══╝  ██║     ╚════██║██║
   ███████║███████╗╚██████╗███████║██║
   ╚══════╝╚══════╝ ╚═════╝╚══════╝╚═╝
-  HOUDINI CLI
-`
+  HOUDINI CLI v%s
+`, version)
 	fmt.Print(banner)
 }
 
